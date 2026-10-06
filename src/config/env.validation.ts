@@ -69,6 +69,21 @@ export class EnvironmentVariables {
   @Transform(({ value }) => Number(value))
   RETRY_MAX_DELAY_MS = 1_000;
 
+  /**
+   * Exclusive right to call the provider for one operation. Must outlast the worst
+   * in-request provider time (checked in validateEnv).
+   */
+  @IsInt()
+  @Min(1_000)
+  @Transform(({ value }) => Number(value))
+  OPERATION_LEASE_MS = 15_000;
+
+  /** Attempts of one settlement when it conflicts with a concurrent write. */
+  @IsInt()
+  @Min(1)
+  @Transform(({ value }) => Number(value))
+  SETTLEMENT_MAX_ATTEMPTS = 5;
+
   /** Comma separated list of origins, or "*". */
   @IsString()
   CORS_ALLOWED_ORIGIN = '*';
@@ -90,6 +105,19 @@ export function validateEnv(
   if (errors.length > 0) {
     throw new Error(`Invalid environment:\n${errors.toString()}`);
   }
+  assertLeaseOutlastsProviderCalls(env);
   env.SWAGGER_ENABLED ??= env.NODE_ENV !== 'production';
   return env;
+}
+
+/** A lease shorter than the in-request provider time would let a second process charge too. */
+function assertLeaseOutlastsProviderCalls(env: EnvironmentVariables): void {
+  const worstCaseMs =
+    env.PROVIDER_TIMEOUT_MS * env.PROVIDER_MAX_ATTEMPTS +
+    env.RETRY_MAX_DELAY_MS * (env.PROVIDER_MAX_ATTEMPTS - 1);
+  if (env.OPERATION_LEASE_MS <= worstCaseMs) {
+    throw new Error(
+      `Invalid environment: OPERATION_LEASE_MS (${env.OPERATION_LEASE_MS}) must exceed the worst case provider time (${worstCaseMs} ms)`,
+    );
+  }
 }

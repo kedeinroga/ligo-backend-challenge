@@ -66,6 +66,14 @@ export class AppConfigService {
     return this.config.get('RETRY_MAX_DELAY_MS', { infer: true });
   }
 
+  get operationLeaseMs(): number {
+    return this.config.get('OPERATION_LEASE_MS', { infer: true });
+  }
+
+  get settlementMaxAttempts(): number {
+    return this.config.get('SETTLEMENT_MAX_ATTEMPTS', { infer: true });
+  }
+
   get corsAllowedOrigin(): string | string[] {
     const origin = this.config.get('CORS_ALLOWED_ORIGIN', { infer: true });
     return origin === '*' ? origin : origin.split(',').map((o) => o.trim());

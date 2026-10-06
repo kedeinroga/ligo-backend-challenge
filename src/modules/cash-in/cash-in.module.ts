@@ -1,4 +1,9 @@
 import { Module } from '@nestjs/common';
+import { AppConfigService } from '../../config/app-config.service.js';
+import { LogsService } from '../../shared/application/ports/logs.service.js';
+import { CashInProcessor } from './application/cash-in-processor.js';
+import { CashInSettings } from './application/cash-in.settings.js';
+import { InitiateCashInHandler } from './application/commands/initiate-cash-in/initiate-cash-in.handler.js';
 import { PaymentProvider } from './application/ports/payment-provider.port.js';
 import { CashInUnitOfWork } from './application/ports/cash-in-unit-of-work.port.js';
 import { CashInOperationRepository } from './domain/cash-in-operation.repository.js';
@@ -19,6 +24,44 @@ import { SimulatedProviderBackend } from './infrastructure/simulated-provider/si
     { provide: CashInUnitOfWork, useClass: MongoCashInUnitOfWork },
     { provide: PaymentProvider, useClass: SimulatedPaymentProvider },
     SimulatedProviderBackend,
+    {
+      provide: CashInSettings,
+      inject: [AppConfigService],
+      useFactory: (config: AppConfigService): CashInSettings =>
+        new CashInSettings(config.operationLeaseMs, {
+          maxAttempts: config.settlementMaxAttempts,
+          baseDelayMs: config.retryBaseDelayMs,
+          maxDelayMs: config.retryMaxDelayMs,
+        }),
+    },
+    {
+      provide: CashInProcessor,
+      inject: [
+        CashInOperationRepository,
+        WalletRepository,
+        CashInUnitOfWork,
+        PaymentProvider,
+        CashInSettings,
+        LogsService,
+      ],
+      useFactory: (
+        operations: CashInOperationRepository,
+        wallets: WalletRepository,
+        unitOfWork: CashInUnitOfWork,
+        provider: PaymentProvider,
+        settings: CashInSettings,
+        logger: LogsService,
+      ): CashInProcessor =>
+        new CashInProcessor(
+          operations,
+          wallets,
+          unitOfWork,
+          provider,
+          settings,
+          logger,
+        ),
+    },
+    InitiateCashInHandler,
   ],
 })
 export class CashInModule {}
