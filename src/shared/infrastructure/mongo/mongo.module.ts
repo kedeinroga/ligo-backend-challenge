@@ -12,6 +12,8 @@ import { MONGO_CLIENT, MONGO_DB } from './mongo.tokens.js';
       inject: [AppConfigService],
       useFactory: (config: AppConfigService): Promise<MongoClient> =>
         new MongoClient(config.mongoUri, {
+          // int64 fields (money in minor units) round trip as bigint, never as float.
+          useBigInt64: true,
           serverSelectionTimeoutMS: config.mongoServerSelectionTimeoutMs,
         }).connect(),
     },

@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppConfigModule } from './config/app-config.module.js';
 import { AppConfigService } from './config/app-config.service.js';
+import { CashInModule } from './modules/cash-in/cash-in.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { GenericExceptionFilter } from './shared/api/filters/generic-exception.filter.js';
 import { LoggerMiddleware } from './shared/api/middleware/logger.middleware.js';
@@ -27,6 +28,7 @@ import { InfrastructureModule } from './shared/infrastructure/infrastructure.mod
     CqrsModule.forRoot(),
     InfrastructureModule.forRoot(),
     HealthModule,
+    CashInModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
