@@ -53,11 +53,15 @@ function setup(): {
   const unitOfWork = new InMemoryCashInUnitOfWork(operations, wallets);
   const provider = new FakePaymentProvider();
   const logger = new NoopLogsService();
-  const settings = new CashInSettings(60_000, {
-    maxAttempts: 3,
-    baseDelayMs: 0,
-    maxDelayMs: 0,
-  });
+  const settings = new CashInSettings(
+    60_000,
+    {
+      maxAttempts: 3,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+    },
+    { minAgeMs: 0, batchSize: 20, maxProviderCalls: 10 },
+  );
   const processor = new CashInProcessor(
     operations,
     wallets,

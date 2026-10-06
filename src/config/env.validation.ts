@@ -98,6 +98,33 @@ export class EnvironmentVariables {
   @Transform(({ value }) => Number(value))
   WEBHOOK_TOLERANCE_SECONDS = 300;
 
+  /** In process periodic job; each stale pending operation is claimed atomically in Mongo. */
+  @IsBoolean()
+  @Transform(({ value }) => value === true || value === 'true')
+  RECONCILER_ENABLED = true;
+
+  @IsInt()
+  @Min(1_000)
+  @Transform(({ value }) => Number(value))
+  RECONCILER_INTERVAL_MS = 15_000;
+
+  /** A pending operation younger than this is left to its own request, webhook or retry. */
+  @IsInt()
+  @Min(0)
+  @Transform(({ value }) => Number(value))
+  RECONCILER_MIN_AGE_MS = 30_000;
+
+  @IsInt()
+  @Min(1)
+  @Transform(({ value }) => Number(value))
+  RECONCILER_BATCH_SIZE = 20;
+
+  /** Provider submissions after which an operation is left pending for manual review. */
+  @IsInt()
+  @Min(1)
+  @Transform(({ value }) => Number(value))
+  RECONCILER_MAX_PROVIDER_CALLS = 10;
+
   /** Comma separated list of origins, or "*". */
   @IsString()
   CORS_ALLOWED_ORIGIN = '*';

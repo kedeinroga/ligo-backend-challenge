@@ -1,5 +1,11 @@
 import { RetryPolicy } from '../../../shared/application/retry.js';
 
+export interface ReconciliationSettings {
+  readonly minAgeMs: number;
+  readonly batchSize: number;
+  readonly maxProviderCalls: number;
+}
+
 /** Tunables of the cash-in flows, bound from the validated configuration. */
 export class CashInSettings {
   constructor(
@@ -7,5 +13,6 @@ export class CashInSettings {
     readonly leaseMs: number,
     /** Reload and reapply a settlement that lost a race with a concurrent write. */
     readonly settlementRetry: RetryPolicy,
+    readonly reconciliation: ReconciliationSettings,
   ) {}
 }

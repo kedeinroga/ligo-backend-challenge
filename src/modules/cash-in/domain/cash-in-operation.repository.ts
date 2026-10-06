@@ -32,11 +32,15 @@ export abstract class CashInOperationRepository {
   /**
    * Same atomic claim on the oldest pending operation created before `createdBefore`
    * that was submitted fewer than `maxProviderCalls` times.
+   * `excludedIds` are operations the caller already handled in this run: without
+   * them an operation whose outcome stayed unknown (lease released) would be
+   * claimed again at once and burn its submissions in a single run.
    */
   abstract claimNextStale(
     createdBefore: Date,
     maxProviderCalls: number,
     leaseMs: number,
+    excludedIds: readonly string[],
   ): Promise<CashInOperation | null>;
 
   /**

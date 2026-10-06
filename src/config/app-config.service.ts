@@ -82,6 +82,26 @@ export class AppConfigService {
     return this.config.get('WEBHOOK_TOLERANCE_SECONDS', { infer: true });
   }
 
+  get reconcilerEnabled(): boolean {
+    return this.config.get('RECONCILER_ENABLED', { infer: true });
+  }
+
+  get reconcilerIntervalMs(): number {
+    return this.config.get('RECONCILER_INTERVAL_MS', { infer: true });
+  }
+
+  get reconcilerMinAgeMs(): number {
+    return this.config.get('RECONCILER_MIN_AGE_MS', { infer: true });
+  }
+
+  get reconcilerBatchSize(): number {
+    return this.config.get('RECONCILER_BATCH_SIZE', { infer: true });
+  }
+
+  get reconcilerMaxProviderCalls(): number {
+    return this.config.get('RECONCILER_MAX_PROVIDER_CALLS', { infer: true });
+  }
+
   get corsAllowedOrigin(): string | string[] {
     const origin = this.config.get('CORS_ALLOWED_ORIGIN', { infer: true });
     return origin === '*' ? origin : origin.split(',').map((o) => o.trim());

@@ -7,6 +7,8 @@ import { InitiateCashInHandler } from './application/commands/initiate-cash-in/i
 import { CashInController } from './api/cash-in.controller.js';
 import { WebhookSignatureGuard } from './api/guards/webhook-signature.guard.js';
 import { PaymentWebhookController } from './api/payment-webhook.controller.js';
+import { ReconcilePendingOperationsHandler } from './application/commands/reconcile-pending-operations/reconcile-pending-operations.handler.js';
+import { ReconciliationScheduler } from './infrastructure/reconciliation.scheduler.js';
 import { HandlePaymentNotificationHandler } from './application/commands/handle-payment-notification/handle-payment-notification.handler.js';
 import { WebhookSignatureVerifier } from './application/ports/webhook-signature-verifier.port.js';
 import { HmacWebhookSignatureVerifier } from './infrastructure/hmac-webhook-signature.verifier.js';
@@ -35,11 +37,19 @@ import { SimulatedProviderBackend } from './infrastructure/simulated-provider/si
       provide: CashInSettings,
       inject: [AppConfigService],
       useFactory: (config: AppConfigService): CashInSettings =>
-        new CashInSettings(config.operationLeaseMs, {
-          maxAttempts: config.settlementMaxAttempts,
-          baseDelayMs: config.retryBaseDelayMs,
-          maxDelayMs: config.retryMaxDelayMs,
-        }),
+        new CashInSettings(
+          config.operationLeaseMs,
+          {
+            maxAttempts: config.settlementMaxAttempts,
+            baseDelayMs: config.retryBaseDelayMs,
+            maxDelayMs: config.retryMaxDelayMs,
+          },
+          {
+            minAgeMs: config.reconcilerMinAgeMs,
+            batchSize: config.reconcilerBatchSize,
+            maxProviderCalls: config.reconcilerMaxProviderCalls,
+          },
+        ),
     },
     {
       provide: CashInProcessor,
@@ -70,6 +80,8 @@ import { SimulatedProviderBackend } from './infrastructure/simulated-provider/si
     },
     InitiateCashInHandler,
     HandlePaymentNotificationHandler,
+    ReconcilePendingOperationsHandler,
+    ReconciliationScheduler,
     {
       provide: WebhookSignatureVerifier,
       useClass: HmacWebhookSignatureVerifier,

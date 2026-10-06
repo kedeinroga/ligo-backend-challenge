@@ -27,3 +27,10 @@ export function toCashInResult(operation: CashInOperation): CashInResult {
     failureReason: operation.failureReason,
   };
 }
+
+export interface ReconciliationResult {
+  readonly claimed: number;
+  readonly completed: number;
+  readonly failed: number;
+  readonly stillPending: number;
+}

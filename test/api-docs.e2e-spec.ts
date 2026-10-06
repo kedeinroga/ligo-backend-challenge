@@ -27,6 +27,7 @@ describe('API docs (e2e)', () => {
     expect(res.body.openapi).toMatch(/^3\./);
     expect(res.body.paths['/health/ready']).toBeDefined();
     expect(res.body.paths['/cash-in']).toBeDefined();
+    expect(res.body.paths['/webhooks/payment']).toBeDefined();
   });
 
   it('serves the Scalar API reference', async () => {

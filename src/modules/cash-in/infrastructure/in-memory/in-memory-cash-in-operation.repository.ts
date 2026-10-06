@@ -66,11 +66,13 @@ export class InMemoryCashInOperationRepository extends CashInOperationRepository
     createdBefore: Date,
     maxProviderCalls: number,
     leaseMs: number,
+    excludedIds: readonly string[],
   ): Promise<CashInOperation | null> {
     const next = this.all()
       .filter(
         (s) =>
           this.isClaimable(s) &&
+          !excludedIds.includes(s.operation.id) &&
           s.operation.createdAt < createdBefore &&
           s.providerCallCount < maxProviderCalls,
       )

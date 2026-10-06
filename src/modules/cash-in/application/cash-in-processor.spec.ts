@@ -27,11 +27,15 @@ async function setup(): Promise<{
   const wallets = new InMemoryWalletRepository();
   const unitOfWork = new InMemoryCashInUnitOfWork(operations, wallets);
   const provider = new FakePaymentProvider();
-  const settings = new CashInSettings(1_000, {
-    maxAttempts: MAX_ATTEMPTS,
-    baseDelayMs: 0,
-    maxDelayMs: 0,
-  });
+  const settings = new CashInSettings(
+    1_000,
+    {
+      maxAttempts: MAX_ATTEMPTS,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+    },
+    { minAgeMs: 0, batchSize: 20, maxProviderCalls: 10 },
+  );
   const processor = new CashInProcessor(
     operations,
     wallets,

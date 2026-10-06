@@ -65,11 +65,15 @@ async function setup(): Promise<{
     wallets,
     unitOfWork,
     new FakePaymentProvider(),
-    new CashInSettings(1_000, {
-      maxAttempts: 3,
-      baseDelayMs: 0,
-      maxDelayMs: 0,
-    }),
+    new CashInSettings(
+      1_000,
+      {
+        maxAttempts: 3,
+        baseDelayMs: 0,
+        maxDelayMs: 0,
+      },
+      { minAgeMs: 0, batchSize: 20, maxProviderCalls: 10 },
+    ),
     logger,
   );
   await wallets.insertIfAbsent(

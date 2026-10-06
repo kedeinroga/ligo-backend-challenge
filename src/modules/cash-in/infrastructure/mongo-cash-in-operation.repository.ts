@@ -92,9 +92,11 @@ export class MongoCashInOperationRepository
     createdBefore: Date,
     maxProviderCalls: number,
     leaseMs: number,
+    excludedIds: readonly string[],
   ): Promise<CashInOperation | null> {
     return this.claimOne(
       {
+        _id: { $nin: [...excludedIds] },
         createdAt: { $lt: createdBefore },
         providerCallCount: { $lt: maxProviderCalls },
       },
