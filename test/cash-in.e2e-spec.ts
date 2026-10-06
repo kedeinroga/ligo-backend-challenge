@@ -19,7 +19,7 @@ async function createApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
   }).compile();
-  const app = setupApp(moduleRef.createNestApplication());
+  const app = setupApp(moduleRef.createNestApplication({ rawBody: true }));
   await app.init();
   return app;
 }

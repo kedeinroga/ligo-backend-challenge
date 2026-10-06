@@ -5,6 +5,11 @@ import { CashInProcessor } from './application/cash-in-processor.js';
 import { CashInSettings } from './application/cash-in.settings.js';
 import { InitiateCashInHandler } from './application/commands/initiate-cash-in/initiate-cash-in.handler.js';
 import { CashInController } from './api/cash-in.controller.js';
+import { WebhookSignatureGuard } from './api/guards/webhook-signature.guard.js';
+import { PaymentWebhookController } from './api/payment-webhook.controller.js';
+import { HandlePaymentNotificationHandler } from './application/commands/handle-payment-notification/handle-payment-notification.handler.js';
+import { WebhookSignatureVerifier } from './application/ports/webhook-signature-verifier.port.js';
+import { HmacWebhookSignatureVerifier } from './infrastructure/hmac-webhook-signature.verifier.js';
 import { PaymentProvider } from './application/ports/payment-provider.port.js';
 import { CashInUnitOfWork } from './application/ports/cash-in-unit-of-work.port.js';
 import { CashInOperationRepository } from './domain/cash-in-operation.repository.js';
@@ -16,7 +21,7 @@ import { SimulatedPaymentProvider } from './infrastructure/simulated-payment-pro
 import { SimulatedProviderBackend } from './infrastructure/simulated-provider/simulated-provider.backend.js';
 
 @Module({
-  controllers: [CashInController],
+  controllers: [CashInController, PaymentWebhookController],
   providers: [
     {
       provide: CashInOperationRepository,
@@ -64,6 +69,12 @@ import { SimulatedProviderBackend } from './infrastructure/simulated-provider/si
         ),
     },
     InitiateCashInHandler,
+    HandlePaymentNotificationHandler,
+    {
+      provide: WebhookSignatureVerifier,
+      useClass: HmacWebhookSignatureVerifier,
+    },
+    WebhookSignatureGuard,
   ],
 })
 export class CashInModule {}

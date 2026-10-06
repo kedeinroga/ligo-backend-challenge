@@ -11,7 +11,7 @@ describe('API docs (e2e)', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
-    app = setupApp(moduleRef.createNestApplication());
+    app = setupApp(moduleRef.createNestApplication({ rawBody: true }));
     await app.init();
   });
 

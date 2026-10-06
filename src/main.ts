@@ -7,7 +7,10 @@ import { NestLoggerAdapter } from './shared/infrastructure/logging/nest-logger.a
 
 async function bootstrap() {
   // Buffer Nest's own logs until LogsService exists: one JSON schema for every line.
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
   const logs = app.get(LogsService);
   app.useLogger(new NestLoggerAdapter(logs));
   setupApp(app);

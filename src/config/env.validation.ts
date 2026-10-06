@@ -6,8 +6,11 @@ import {
   IsOptional,
   IsString,
   Min,
+  MinLength,
   validateSync,
 } from 'class-validator';
+
+export const DEFAULT_WEBHOOK_SIGNING_SECRET = 'dev-only-webhook-signing-secret';
 
 /** Environment contract. The app refuses to start with an invalid config. */
 export class EnvironmentVariables {
@@ -84,6 +87,17 @@ export class EnvironmentVariables {
   @Transform(({ value }) => Number(value))
   SETTLEMENT_MAX_ATTEMPTS = 5;
 
+  /** HMAC key shared with the provider. The default is rejected when NODE_ENV=production. */
+  @IsString()
+  @MinLength(16)
+  WEBHOOK_SIGNING_SECRET = DEFAULT_WEBHOOK_SIGNING_SECRET;
+
+  /** Max distance between a webhook timestamp and now (replay window). */
+  @IsInt()
+  @Min(1)
+  @Transform(({ value }) => Number(value))
+  WEBHOOK_TOLERANCE_SECONDS = 300;
+
   /** Comma separated list of origins, or "*". */
   @IsString()
   CORS_ALLOWED_ORIGIN = '*';
@@ -106,6 +120,7 @@ export function validateEnv(
     throw new Error(`Invalid environment:\n${errors.toString()}`);
   }
   assertLeaseOutlastsProviderCalls(env);
+  assertProductionSecret(env);
   env.SWAGGER_ENABLED ??= env.NODE_ENV !== 'production';
   return env;
 }
@@ -118,6 +133,17 @@ function assertLeaseOutlastsProviderCalls(env: EnvironmentVariables): void {
   if (env.OPERATION_LEASE_MS <= worstCaseMs) {
     throw new Error(
       `Invalid environment: OPERATION_LEASE_MS (${env.OPERATION_LEASE_MS}) must exceed the worst case provider time (${worstCaseMs} ms)`,
+    );
+  }
+}
+
+function assertProductionSecret(env: EnvironmentVariables): void {
+  if (
+    env.NODE_ENV === 'production' &&
+    env.WEBHOOK_SIGNING_SECRET === DEFAULT_WEBHOOK_SIGNING_SECRET
+  ) {
+    throw new Error(
+      'Invalid environment: WEBHOOK_SIGNING_SECRET must be set in production',
     );
   }
 }

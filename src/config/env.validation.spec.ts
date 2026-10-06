@@ -32,4 +32,23 @@ describe(validateEnv.name, () => {
       /SETTLEMENT_MAX_ATTEMPTS/,
     );
   });
+
+  it('rejects the default webhook secret in production only', () => {
+    expect(() => validateEnv({ NODE_ENV: 'production' })).toThrow(
+      /WEBHOOK_SIGNING_SECRET/,
+    );
+    expect(() =>
+      validateEnv({
+        NODE_ENV: 'production',
+        WEBHOOK_SIGNING_SECRET: 'a-real-production-secret',
+      }),
+    ).not.toThrow();
+    expect(() => validateEnv({ NODE_ENV: 'development' })).not.toThrow();
+  });
+
+  it('rejects a webhook secret shorter than 16 characters', () => {
+    expect(() => validateEnv({ WEBHOOK_SIGNING_SECRET: 'short' })).toThrow(
+      /WEBHOOK_SIGNING_SECRET/,
+    );
+  });
 });
