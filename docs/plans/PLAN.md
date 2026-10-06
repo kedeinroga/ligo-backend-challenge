@@ -44,6 +44,7 @@ provider failure), README with architecture and decisions, and the AI usage sect
 | D7 | 2026-10-06 | `new_balance` is present **only** when `status` is `completed` (balance right after this credit, stored on the operation). Omitted for `pending` and `failed` (user corrected the agent's proposal of `null`; see section 16). |
 | D8 | 2026-10-06 | Same `Idempotency-Key` while the first request is calling the provider -> the others answer `202 pending` without calling the provider (atomic lease in Mongo). |
 | D9 | 2026-10-06 | Reconciler included: in process periodic job, each stale pending operation claimed atomically in Mongo so two pods never process the same one. |
+| D11 | 2026-10-06 | Reconciler claims pass the ids already handled in the run (`excludedIds`), so an operation whose outcome stays unknown is submitted once per run instead of being re-claimed at once and burning its submission cap (found while implementing step 8, decided with the user; ai-log #9). |
 | D10 | 2026-10-06 | New shared base exception `AuthenticationException` (401) for invalid webhook signatures; added to the kernel, the HTTP mapping, `CLAUDE.md` section 8 and the README. |
 
 ### Assumptions
@@ -194,7 +195,7 @@ defensive, a settled operation always has a wallet since it is created before th
 | `findById(id: string): Promise<CashInOperation \| null>` | |
 | `findByIdempotencyKey(userId: string, idempotencyKey: string): Promise<CashInOperation \| null>` | |
 | `claim(id: string, leaseMs: number): Promise<CashInOperation \| null>` | Atomic `findOneAndUpdate({ _id, status: 'pending', $or: [{ leaseUntil: null }, { leaseUntil: { $lt: now } }] }, { $set: { leaseUntil: now + leaseMs }, $inc: { providerCallCount: 1 } }, { returnDocument: 'after' })`. `null` = someone else holds it or it is final. Does **not** change `version`. |
-| `claimNextStale(createdBefore: Date, maxProviderCalls: number, leaseMs: number): Promise<CashInOperation \| null>` | Same atomic claim, filter adds `createdAt < createdBefore` and `providerCallCount < maxProviderCalls`, sort `{ createdAt: 1 }`. |
+| `claimNextStale(createdBefore: Date, maxProviderCalls: number, leaseMs: number, excludedIds: readonly string[]): Promise<CashInOperation \| null>` | Same atomic claim, filter adds `_id $nin excludedIds`, `createdAt < createdBefore` and `providerCallCount < maxProviderCalls`, sort `{ createdAt: 1 }`. `excludedIds` are the operations already handled in this run (D11). |
 | `releaseLease(id: string): Promise<void>` | `updateOne({ _id, status: 'pending' }, { $set: { leaseUntil: null } })`. Called when the provider call finished with an unknown outcome, so an immediate client retry can re-submit. |
 
 `domain/wallet.repository.ts` -> `WalletRepository`:
@@ -598,7 +599,7 @@ provider retries -> `duplicate`.
 previous one runs, dispatches `ReconcilePendingOperationsCommand(randomUUID())` through `CommandBus`,
 logs errors. The skip flag is only a load guard; exclusivity comes from the Mongo claim.
 
-Handler: up to `RECONCILER_BATCH_SIZE` times: `op = operations.claimNextStale(now - RECONCILER_MIN_AGE_MS, RECONCILER_MAX_PROVIDER_CALLS, leaseMs)`;
+Handler: up to `RECONCILER_BATCH_SIZE` times: `op = operations.claimNextStale(now - RECONCILER_MIN_AGE_MS, RECONCILER_MAX_PROVIDER_CALLS, leaseMs, handledIds)` (D11);
 `null` -> stop; else `processor.chargeAndSettle(op, traceId)` inside try/catch (one failing operation
 never stops the batch; logged `error`). Returns `{ claimed, completed, failed, stillPending }`, logged `info`.
 Operations that reached `RECONCILER_MAX_PROVIDER_CALLS` stay pending and are no longer selected
@@ -887,3 +888,17 @@ No structural gap (aggregate boundaries and flows hold), so the plan was patched
 | V11 | Why 5 settlement attempts suffice for 5 concurrent credits was not argued (the e2e expects all 200). | reasoning gap | Argument added (section 10). |
 
 Result: checklist passes, no open decisions. `APPROVED FOR IMPLEMENTATION`.
+
+## 20. Implementation log
+
+One commit per step of section 14. Small gaps closed while implementing, and the one decision taken with the user.
+
+| Step | What differs from the plan or was added | Why |
+|---|---|---|
+| 3 | `shared/infrastructure/mongo/mongo-errors.ts` (`isDuplicateKeyError`, `isTransientTransactionError`, `translateDriverErrors`); the in-memory repositories expose `assertVersion` and `apply` for the in-memory unit of work; four extra persistence e2e tests (`settles operation, wallet and ledger entry together`, `rolls back operation and wallet when the ledger entry already exists`, plus `accepts the same key for different users` and `does not let a released lease free a final operation`). | One place for the driver error rules of `CLAUDE.md` section 6; the test doubles need the same version semantics; the extra tests prove the transaction is all or nothing. |
+| 5 | `CashInSettings.reconciliation` was added in step 8 (no caller before). The processor accepts the notification context in step 5 as planned, covered by `cash-in-processor.spec.ts`; the test `credits once when the notification settles before the provider answers` calls `processor.settleApproved` mid call because the notification handler arrives in step 7. | No code without a caller; the handler did not exist yet. |
+| 6 | `parseIdempotencyKey` is exported next to the `@IdempotencyKey()` decorator and unit tested. The seed uses `NumberInt(0)` for `version`. | A param decorator is not unit testable on its own; keep the version an int32 like the driver writes it. |
+| 7 | DTO optional fields (`provider_charge_id`, `failure_reason`) are validated whenever present, not only for their type; the handler rejects a `payment.succeeded` or `payment.failed` without its field with a `DataInputException` (defensive, the DTO already guarantees it). | A wrongly typed optional field must not slip through when it is not required. |
+| 8 | **D11** (`excludedIds`). `src/main.ts` needs no `enableShutdownHooks()`: `setupApp`, shared by `main.ts` and the e2e tests, already calls it. | See D11; avoid a duplicate call. |
+
+Verification run (2026-10-06): `npm run check` green at every step (139 unit tests at the end), `npm run test:e2e` 48 tests green and repeated three times after steps 6, 7 and 8, manual checks of section 15 executed against `docker compose` for steps 6, 7 and 8 (statement example, replay, 422 on a reused key, timeout then retry, decline, five parallel requests with one provider call, webhook applied, duplicate and conflict, 401 without signature, trace id on every log line, reconciler completing a timed out operation).
