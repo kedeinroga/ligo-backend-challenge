@@ -48,3 +48,9 @@ export class BusinessRuleViolationException extends DomainException {
     'business-rule-violation-exception';
   readonly instanceCode: string = BusinessRuleViolationException.staticCode;
 }
+
+/** The caller could not be authenticated, e.g. an invalid webhook signature (401). */
+export class AuthenticationException extends DomainException {
+  static override readonly staticCode: string = 'authentication-exception';
+  readonly instanceCode: string = AuthenticationException.staticCode;
+}

@@ -179,6 +179,7 @@ Every error is a `DomainException` subclass with a stable kebab-case `staticCode
 | Base exception | HTTP |
 |---|---|
 | `DataInputException` (validation included) | 400 |
+| `AuthenticationException` | 401 |
 | `DataNotFoundException` | 404 |
 | `DataConflictException`, `ConcurrencyException` | 409 |
 | `BusinessRuleViolationException` | 422 |

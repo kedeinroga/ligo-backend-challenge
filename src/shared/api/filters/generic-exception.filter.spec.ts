@@ -1,5 +1,6 @@
 import { ArgumentsHost, NotFoundException } from '@nestjs/common';
 import {
+  AuthenticationException,
   BusinessRuleViolationException,
   CurrencyMismatchException,
   DataSourceException,
@@ -30,6 +31,11 @@ function run(exception: unknown) {
   return { status: status.mock.calls[0][0], body: json.mock.calls[0][0] };
 }
 
+class InvalidSignature extends AuthenticationException {
+  static override readonly staticCode: string = 'invalid-signature-exception';
+  override readonly instanceCode: string = InvalidSignature.staticCode;
+}
+
 describe(GenericExceptionFilter.name, () => {
   it('maps a subclass through its closest mapped ancestor, keeping its code and message', () => {
     const { status, body } = run(new InsufficientFunds('balance is 1.00 PEN'));
@@ -52,6 +58,17 @@ describe(GenericExceptionFilter.name, () => {
         code: 'currency-mismatch-exception',
       },
     );
+  });
+
+  it('maps an authentication failure to 401, keeping its code and message', () => {
+    expect(
+      run(new InvalidSignature('signature does not match')).body,
+    ).toMatchObject({
+      statusCode: 401,
+      code: 'invalid-signature-exception',
+      errorMessage: 'Unauthorized',
+      errorMessageDescription: 'signature does not match',
+    });
   });
 
   it('hides internal details on 5xx', () => {

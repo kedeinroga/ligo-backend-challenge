@@ -65,7 +65,7 @@ describe(CheckReadinessHandler.name, () => {
     expect(report.status).toBe('down');
     expect(report.dependencies.mongo).toEqual({
       status: 'down',
-      error: 'Error: timeout after 50ms',
+      error: 'TimeoutExceededError: timeout after 50ms',
     });
     expect(report.dependencies.redis).toEqual({ status: 'up' });
   });

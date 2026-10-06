@@ -1,5 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 import {
+  AuthenticationException,
   BusinessRuleViolationException,
   ConcurrencyException,
   DataConflictException,
@@ -45,6 +46,11 @@ export const DOMAIN_EXCEPTIONS_TO_HTTP_RESPONSE: Record<
     statusCode: HttpStatus.BAD_REQUEST,
     errorMessage: 'Invalid Request',
     errorMessageDescription: 'The provided data is not valid.',
+  },
+  [AuthenticationException.staticCode]: {
+    statusCode: HttpStatus.UNAUTHORIZED,
+    errorMessage: 'Unauthorized',
+    errorMessageDescription: 'The caller could not be authenticated.',
   },
   [DataNotFoundException.staticCode]: {
     statusCode: HttpStatus.NOT_FOUND,

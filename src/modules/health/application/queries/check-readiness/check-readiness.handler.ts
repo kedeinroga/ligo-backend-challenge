@@ -1,22 +1,11 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { DependencyHealthChecks } from '../../../../../shared/application/ports/dependency-health-check.port.js';
+import { withTimeout } from '../../../../../shared/application/with-timeout.js';
 import { LogsService } from '../../../../../shared/application/ports/logs.service.js';
 import {
   CheckReadinessQuery,
   ReadinessReport,
 } from './check-readiness.query.js';
-
-async function withTimeout(check: Promise<void>, ms: number): Promise<void> {
-  let timer: NodeJS.Timeout | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`timeout after ${ms}ms`)), ms);
-  });
-  try {
-    await Promise.race([check, timeout]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 /**
  * Runs every dependency check in parallel, each within its time budget; the

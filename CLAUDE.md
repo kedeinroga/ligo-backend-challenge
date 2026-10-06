@@ -172,6 +172,7 @@ handler(@TraceId() traceId: string, @Body() body: XRequestDto)
 | Base class | HTTP | Use for |
 |---|---|---|
 | `DataInputException` | 400 | invalid value, failed validation, missing header |
+| `AuthenticationException` | 401 | caller not authenticated (invalid webhook signature) |
 | `DataNotFoundException` | 404 | aggregate not found |
 | `DataConflictException` | 409 | duplicates, operation still in progress |
 | `ConcurrencyException` | 409 | optimistic concurrency |
