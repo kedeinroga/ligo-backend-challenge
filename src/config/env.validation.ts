@@ -47,6 +47,28 @@ export class EnvironmentVariables {
   @Transform(({ value }) => Number(value))
   THROTTLE_LIMIT = 100;
 
+  /** Budget of one charge submission to the payment provider. */
+  @IsInt()
+  @Min(100)
+  @Transform(({ value }) => Number(value))
+  PROVIDER_TIMEOUT_MS = 3_000;
+
+  /** Total submissions of one charge when the provider is unavailable (same key every time). */
+  @IsInt()
+  @Min(1)
+  @Transform(({ value }) => Number(value))
+  PROVIDER_MAX_ATTEMPTS = 3;
+
+  @IsInt()
+  @Min(0)
+  @Transform(({ value }) => Number(value))
+  RETRY_BASE_DELAY_MS = 50;
+
+  @IsInt()
+  @Min(0)
+  @Transform(({ value }) => Number(value))
+  RETRY_MAX_DELAY_MS = 1_000;
+
   /** Comma separated list of origins, or "*". */
   @IsString()
   CORS_ALLOWED_ORIGIN = '*';

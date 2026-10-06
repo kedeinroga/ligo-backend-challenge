@@ -50,6 +50,22 @@ export class AppConfigService {
     return this.config.get('THROTTLE_LIMIT', { infer: true });
   }
 
+  get providerTimeoutMs(): number {
+    return this.config.get('PROVIDER_TIMEOUT_MS', { infer: true });
+  }
+
+  get providerMaxAttempts(): number {
+    return this.config.get('PROVIDER_MAX_ATTEMPTS', { infer: true });
+  }
+
+  get retryBaseDelayMs(): number {
+    return this.config.get('RETRY_BASE_DELAY_MS', { infer: true });
+  }
+
+  get retryMaxDelayMs(): number {
+    return this.config.get('RETRY_MAX_DELAY_MS', { infer: true });
+  }
+
   get corsAllowedOrigin(): string | string[] {
     const origin = this.config.get('CORS_ALLOWED_ORIGIN', { infer: true });
     return origin === '*' ? origin : origin.split(',').map((o) => o.trim());
