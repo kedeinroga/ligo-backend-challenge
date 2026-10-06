@@ -101,8 +101,10 @@ export class InitiateCashInHandler implements ICommandHandler<InitiateCashInComm
       this.settings.leaseMs,
     );
     if (!claimed) {
-      // Another request holds the lease and is calling the provider: do not call it again.
-      return toCashInResult(existing);
+      // Another request holds the lease, or the operation became final after the
+      // lookup: answer its current state without calling the provider.
+      const current = await this.operations.findById(existing.id);
+      return toCashInResult(current ?? existing);
     }
     return toCashInResult(
       await this.processor.chargeAndSettle(claimed, command.traceId),

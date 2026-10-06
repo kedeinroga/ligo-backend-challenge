@@ -89,7 +89,7 @@ A transition that a terminal state does not allow is **ignored or reported as a 
 5. Settle in one transaction: operation completed (or failed), wallet balance, ledger entry. Answer 200.
 6. If the outcome is unknown, or settling cannot be persisted, release the lease and answer **202 pending**. From the moment the provider may have been called, this endpoint only answers 200 (final) or 202 (pending): never a 4xx or 5xx that would invite the client to use a new key.
 
-Replay: a different amount, currency or payment method for the same key is a 422. A final operation answers its stored result. A pending one is claimed atomically: if the lease is free the charge is re-submitted with the same provider key, otherwise another request is already on it and the answer is 202 without calling the provider.
+Replay: a different amount, currency or payment method for the same key is a 422. A final operation answers its stored result. A pending one is claimed atomically: if the lease is free the charge is re-submitted with the same provider key, otherwise the provider is not called and the answer is the operation's current state, re-read from the database: 202 while another request is still on it, or the final 200 if it settled in the meantime (for example by a webhook).
 
 ## Idempotency strategy
 

@@ -187,6 +187,26 @@ describe(InitiateCashInHandler.name, () => {
     expect(first.status).toBe('completed');
   });
 
+  it('answers the final result when the operation settles between the lookup and the claim', async () => {
+    const { handler, processor, provider, operations, seedWallet } = setup();
+    await seedWallet('250');
+    provider.script({ kind: 'unknown', cause: 'timeout' });
+    const pending = await handler.execute(command());
+    const claim = operations.claim.bind(operations);
+    operations.claim = async (id, leaseMs) => {
+      // A webhook completes the operation after the retry looked it up as pending.
+      await processor.settleApproved(id, 'ch_webhook', { traceId: 'trace-2' });
+      return claim(id, leaseMs);
+    };
+
+    const retry = await handler.execute(command());
+
+    expect(retry.operationId).toBe(pending.operationId);
+    expect(retry.status).toBe('completed');
+    expect(retry.newBalance?.toDecimalString()).toBe('350.00');
+    expect(provider.calls).toHaveLength(1);
+  });
+
   it('leaves the operation pending and releases the lease when the outcome is unknown', async () => {
     const { handler, provider, operations } = setup();
     provider.script({ kind: 'unknown', cause: 'timeout' });
