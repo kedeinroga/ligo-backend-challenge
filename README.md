@@ -430,14 +430,13 @@ Every error is a `DomainException` subclass with a stable kebab-case `staticCode
 
 ## Decisions and trade-offs
 
-- **Rate limit counters in memory.** Per pod; with several replicas the limit multiplies. A shared storage (Redis) fixes it.
 - **Versioned documents instead of event sourcing.** Completing the operation and crediting the wallet are two aggregates, and an event store has no atomic multi stream append. The reconciler also needs "operations stuck in pending", which an in-process projection can lose on a crash. A Mongo transaction over versioned documents gives the atomic credit directly. Event sourcing would be a reasonable evolution if an audit history of every state change became a requirement.
 - **No Redis, no message broker.** The flow needs neither: idempotency and locks live in MongoDB, and there is no consumer for integration events yet.
 - **Wallet and ledger inside the cash-in context.** It keeps the credit a single local transaction. The price is that a separate wallet service would need an outbox or a saga.
 - **Unknown is not failed.** A timeout or a 5xx after the charge was sent never marks the operation failed, because the charge may have happened.
 - **Settle in the request, webhook as confirmation.** The client usually gets the final answer immediately; the webhook and the reconciler exist for the cases where it cannot.
 - **Replies are tolerant to the provider.** Late and contradicting notifications are acknowledged and logged as errors instead of rejected, so the provider never retries forever.
-- **Rate limiting is per pod** (the in-memory counters above), and the webhook route is exempt.
+- **Rate limiting is per pod.** The counters live in memory, so with several replicas the limit multiplies; a shared storage (Redis) fixes it. The webhook route is exempt.
 
 ### Redis or database for idempotency?
 
@@ -452,7 +451,7 @@ For a flow that moves money, the database. The key must be durable and must be i
 - **Wallet contention:** a user doing many concurrent cash-ins serializes on one wallet document. If that matters, move to an append only ledger with a periodically folded balance, which is where the wallet and ledger become their own service (with an outbox to publish events).
 - **Provider:** per provider rate limits and a circuit breaker so a slow provider does not hold every request thread; connection pooling and bulkheads.
 - **Observability:** metrics and traces (time to settle, pending age, retries, conflicts, duplicate webhooks), and an alert on conflicting provider outcomes, which signal charged but not credited money.
-- **Scale out:** stateless pods behind an autoscaler; MongoDB sharded by `userId` if one replica set stops being enough, which keeps both unique indexes valid because they are prefixed by the user.
+- **Scale out:** stateless pods behind an autoscaler; MongoDB sharded if one replica set stops being enough. `cash_in_operations` and `wallets` shard by `userId`, which keeps the idempotency index (`userId`, `idempotencyKey`) enforceable. `payment_notifications` and `ledger_entries` deduplicate by `_id` (event id, operation id), and a sharded collection only enforces `_id` uniqueness per shard, so they shard by `_id`. The settlement transaction then spans shards: it still works, at a higher latency, and that is the real cost to measure first.
 
 ## What I would do with more time
 
