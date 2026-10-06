@@ -54,6 +54,8 @@ src/
       in-memory/                        test doubles of this context's ports
     api/
       <resource>.controller.ts (+ spec)
+      decorators/                       context specific param decorators (e.g. @IdempotencyKey())
+      guards/                           context specific guards (e.g. webhook signature)
       dto/                              *.request.dto.ts, *.response.dto.ts
       mappers/                          result -> response DTO
     <context>.module.ts
