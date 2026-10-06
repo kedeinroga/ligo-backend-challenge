@@ -1,0 +1,7 @@
+# kubectl apply -k k8s/   (create the secret first: see secret.example.yaml)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml

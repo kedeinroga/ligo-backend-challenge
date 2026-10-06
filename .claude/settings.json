@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push *)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(!.env.example)",
+      "Read(*.pem)",
+      "Read(*.key)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.npmrc)",
+      "Read(~/.config/gcloud/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "env": { "node": true },
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "typescript/no-floating-promises": "warn",
+    "no-console": "error",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }]
+  },
+  "overrides": [
+    {
+      "files": ["src/**/domain/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": ["error", { "patterns": [
+          { "group": ["@nestjs/*", "mongodb", "express", "class-validator", "class-transformer"],
+            "message": "domain/ is framework and infrastructure free (see CLAUDE.md)." },
+          { "group": ["**/application/**", "**/infrastructure/**", "**/api/**"],
+            "message": "domain/ depends on nothing but shared/domain." }
+        ] }]
+      }
+    },
+    {
+      "files": ["src/**/application/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": ["error", { "patterns": [
+          { "group": ["@nestjs/*", "!@nestjs/cqrs"],
+            "message": "application/ may only use @nestjs/cqrs (handlers); inject ports, not framework services." },
+          { "group": ["mongodb", "express", "class-validator", "class-transformer"],
+            "message": "application/ depends on ports, never on drivers or HTTP." },
+          { "group": ["**/infrastructure/**", "**/api/**"],
+            "message": "application/ must not import infrastructure/ or api/ (dependency rule)." }
+        ] }]
+      }
+    },
+    {
+      "files": ["src/**/api/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": ["error", { "patterns": [
+          { "group": ["mongodb", "**/infrastructure/**"],
+            "message": "api/ talks to the application through CommandBus/QueryBus, never to infrastructure." }
+        ] }]
+      }
+    },
+    {
+      "files": ["**/*.spec.ts", "test/**/*.ts"],
+      "rules": { "no-restricted-imports": "off" }
+    }
+  ]
+}

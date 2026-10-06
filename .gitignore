@@ -1,0 +1,21 @@
+# dependencies and build output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# env
+.env
+.env.*
+!.env.example
+
+# AI workflow is published (CLAUDE.md, .claude/skills, .claude/hooks, docs/plans, docs/ai-log.md).
+# Only personal settings and private notes stay out.
+.claude/settings.local.json
+CLAUDE.local.md
+
+# local tooling
+.DS_Store
+*.log
+.idea/
+.vscode/

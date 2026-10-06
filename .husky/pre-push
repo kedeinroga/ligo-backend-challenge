@@ -1,0 +1,2 @@
+# Same gate as CI: lint, typecheck, unit tests, build.
+npm run check

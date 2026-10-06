@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1' # weekly, so new advisories surface without a commit
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: docker compose up -d --wait mongo
+      - run: npm run test:e2e
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: ligo-backend-challenge:${{ github.sha }}
+
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gitleaks scans the whole history
+          persist-credentials: false
+      # Pinned versions, sha256 verified. No third party actions: scanners run as plain binaries.
+      - name: Install scanners
+        run: |
+          set -euo pipefail
+          BIN="$RUNNER_TEMP/bin"
+          mkdir -p "$BIN"
+          cd "$RUNNER_TEMP"
+          curl -sfL -o gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tgz" | sha256sum -c -
+          tar -xzf gitleaks.tgz -C "$BIN" gitleaks
+          curl -sfL -o "$BIN/osv-scanner" "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64"
+          echo "ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108  $BIN/osv-scanner" | sha256sum -c -
+          chmod +x "$BIN/osv-scanner"
+          pipx install semgrep==1.178.0
+          echo "$BIN" >> "$GITHUB_PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Security gate
+        run: .github/scripts/security-gate.sh

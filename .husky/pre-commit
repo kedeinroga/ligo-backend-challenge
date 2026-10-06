@@ -1,0 +1,7 @@
+# Secret scan on staged changes (CI runs the authoritative full history scan), then lint.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --no-banner -l warn --exit-code 1 || exit 1
+else
+  echo "pre-commit: gitleaks not installed, skipping local secret scan (CI still scans). brew install gitleaks" >&2
+fi
+npm run lint

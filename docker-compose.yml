@@ -1,0 +1,43 @@
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      MONGO_URI: mongodb://mongo:27017/?replicaSet=rs0
+      MONGO_DB: ligo
+      SWAGGER_ENABLED: "true" # demo only; production default is off
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  # Single node replica set: enables multi document transactions (operation + wallet + ledger).
+  mongo:
+    image: mongo:8
+    # Local dev: mongod logs go to a file instead of stdout (its startup alone is ~230 lines
+    # and has no level filter). Read them with:
+    #   docker compose exec mongo tail -f /var/log/mongodb/mongod.log
+    command:
+      ["--replSet", "rs0", "--bind_ip_all", "--quiet",
+       "--logpath", "/var/log/mongodb/mongod.log", "--logappend"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }).ok }"
+      # Every 2s while starting (it also initiates the replica set), every 30s once healthy.
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+      start_interval: 2s
+
+volumes:
+  mongo-data:
